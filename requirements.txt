@@ -1,6 +1,5 @@
 # Only tested with Python version 3.13.2
 # Newer Python versions should well
-dash==2.11.1
 dash-bootstrap-components==1.5.0
 plotly==5.15.0
 pandas==1.5.3

@@ -1,16 +1,13 @@
-# Only tested with Python version 3.13.2
-# Newer Python versions should well
-dash-bootstrap-components==1.5.0
+# Tested with Python version 3.12
+# Newer Python versions should work well
+
 plotly==5.15.0
-pandas==1.5.3
-scanpy==1.9.2
+scanpy==1.11.0  # Using the latest specified version
 scipy==1.15.2
 numpy==1.26.4
-argparse==1.4.0
 dash==2.18.2
 dash-bootstrap-components==1.7.1
 pandas==2.2.3
-scanpy==1.11.0
 jupyterlab==4.3.5
 ipywidgets==8.1.5
 dash-dangerously-set-inner-html==0.0.2

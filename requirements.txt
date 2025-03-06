@@ -12,3 +12,4 @@ jupyterlab==4.3.5
 ipywidgets==8.1.5
 dash-dangerously-set-inner-html==0.0.2
 gdown==5.2.0
+python-dotenv==1.0.1

@@ -15,6 +15,9 @@ import scanpy as sc
 from scipy.stats import zscore
 import numpy as np
 import argparse
+import os
+import requests
+import base64
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Run the Dash app.")
@@ -22,8 +25,31 @@ parser.add_argument("--host", default="127.0.0.1", help="Host IP address")
 parser.add_argument("--port", type=int, default=8050, help="Port number")
 args = parser.parse_args()
 
+# Define the file path and URL
+file_path = "BrianClark_logp1.h5ad"
+#url = "https://anonymfile.com/BEbkm/brianclark-logp1.h5ad"
+url = "https://anonymfile.com/f/5c627179-5364-476f-a699-369e68ddb0a7"
+
+# Function to download the file if it doesn't exist
+def download_file(url, file_path):
+    if not os.path.exists(file_path):
+        print(f"File not found at {file_path}. Downloading from {url}...")
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            with open(file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"File downloaded and saved to {file_path}.")
+        else:
+            raise Exception(f"Failed to download file. Status code: {response.status_code}")
+    else:
+        print(f"File already exists at {file_path}.")
+
+# Download the file if necessary
+download_file(url, file_path)
+
 # Load your preprocessed data
-adata = sc.read_h5ad("./BrianClark_logp1.h5ad")
+adata = sc.read_h5ad(file_path)
 
 # Define variables for easier modification
 CELLTYPE_COLUMN = "scDeepSort"  # Column in adata.obs for cell types
@@ -36,10 +62,25 @@ adata.obs[AGE_COLUMN] = pd.Categorical(adata.obs[AGE_COLUMN], categories=AGE_ORD
 # Create a Dash app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+# Load GitHub icon
+github_icon_base64 = base64.b64encode(open("figures/github-icon.png", "rb").read()).decode('ascii')
+github_icon = f"data:image/png;base64,{github_icon_base64}"
+
 # Layout of the app
 app.layout = dbc.Container([
     dbc.Row([
-        dbc.Col(html.H1("Single-Cell RNA-Seq Data Explorer"), className="mb-4")
+        dbc.Col([
+            html.H1("scChronoScope", style={"font-size": "3rem"}),
+            html.H2("Single-Cell RNA-Seq Data Explorer", style={"font-size": "1.5rem", "margin-top": "-10px"}),
+            html.Div([
+                html.Span("Developed by Alex Fernandes "),
+                html.A(
+                    html.Img(src=github_icon, style={"width": "20px", "height": "20px", "vertical-align": "middle"}),
+                    href="https://github.com/alexfernandes8a",
+                    target="_blank"
+                )
+            ], style={"margin-top": "10px"})
+        ], className="mb-4")
     ]),
     dbc.Row([
         dbc.Col([
@@ -62,14 +103,14 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Label("Select UMAP Visualization Type"),
-            dcc.Dropdown(
+            dbc.RadioItems(
                 id="umap-type-selector",
                 options=[
                     {"label": "2D UMAP", "value": "2D"},
                     {"label": "3D UMAP", "value": "3D"}
                 ],
                 value="2D",  # Default to 2D
-                clearable=False
+                inline=True
             )
         ], width=6)
     ]),
@@ -263,38 +304,6 @@ def update_plots(selected_gene, selected_cell_type, umap_type):
         )
 
     return gene_fig, cell_type_fig, boxplot_fig, lineplot_fig, heatmap_fig
-
-# Callback to synchronize zoom/pan between Plot 1 and Plot 2
-@app.callback(
-    [Output("umap-gene-expression", "figure", allow_duplicate=True),
-     Output("umap-cell-type", "figure", allow_duplicate=True)],
-    [Input("umap-gene-expression", "relayoutData"),
-     Input("umap-cell-type", "relayoutData")],
-    [State("umap-gene-expression", "figure"),
-     State("umap-cell-type", "figure")],
-    prevent_initial_call=True  # Prevent this callback from running on page load
-)
-def sync_zoom(relayout_data1, relayout_data2, gene_fig, cell_type_fig):
-    # Determine which plot triggered the callback
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return dash.no_update, dash.no_update
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    # Update the zoom/pan state for both plots
-    if triggered_id == "umap-gene-expression" and relayout_data1:
-        if "xaxis.range" in relayout_data1:
-            cell_type_fig["layout"]["xaxis"]["range"] = relayout_data1["xaxis.range"]
-        if "yaxis.range" in relayout_data1:
-            cell_type_fig["layout"]["yaxis"]["range"] = relayout_data1["yaxis.range"]
-    elif triggered_id == "umap-cell-type" and relayout_data2:
-        if "xaxis.range" in relayout_data2:
-            gene_fig["layout"]["xaxis"]["range"] = relayout_data2["xaxis.range"]
-        if "yaxis.range" in relayout_data2:
-            gene_fig["layout"]["yaxis"]["range"] = relayout_data2["yaxis.range"]
-
-    return gene_fig, cell_type_fig
 
 # Run the app
 if __name__ == "__main__":

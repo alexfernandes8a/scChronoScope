@@ -18,6 +18,11 @@ import argparse
 import os
 import requests
 import base64
+import gdown
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Run the Dash app.")
@@ -26,22 +31,20 @@ parser.add_argument("--port", type=int, default=8050, help="Port number")
 args = parser.parse_args()
 
 # Define the file path and URL
-file_path = "BrianClark_logp1.h5ad"
-#url = "https://anonymfile.com/BEbkm/brianclark-logp1.h5ad"
-url = "https://anonymfile.com/f/5c627179-5364-476f-a699-369e68ddb0a7"
+file_path = os.getenv("GDRIVE_FILE_PATH")
+url = os.getenv("GDRIVE_URL")
+md5 = os.getenv("GDRIVE_MD5")
+
+if not url:
+    raise ValueError("GDRIVE_URL environment variable is not set.")
 
 # Function to download the file if it doesn't exist
 def download_file(url, file_path):
     if not os.path.exists(file_path):
         print(f"File not found at {file_path}. Downloading from {url}...")
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            print(f"File downloaded and saved to {file_path}.")
-        else:
-            raise Exception(f"Failed to download file. Status code: {response.status_code}")
+        gdown.download(url, file_path, fuzzy=True, quiet=False)
+        gdown.cached_download(url, file_path, hash=md5, quiet=False)
+        print(f"File downloaded and saved to {file_path}.")
     else:
         print(f"File already exists at {file_path}.")
 
